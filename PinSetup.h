@@ -25,6 +25,11 @@
 #define ENC_CLK 39
 #define ENC_DT  40
 #define ENC_SW  41
+// ================== Rotary Encoder Pins ==================
+#define ENC_CLK 19   // Rotation A (wake source)
+#define ENC_DT  20   // Rotation B (for direction, not wake)
+#define ENC_SW  21   // Button press (wake source)
+
 
 // I2C RTC (standard I2C pins; these are free and portable)
 #define I2C_SDA 22
