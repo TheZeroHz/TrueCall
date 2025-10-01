@@ -6,8 +6,6 @@
 #define MIC_SD   18
 #define MIC_SCK  17
 #define MIC_WS   16
-// ================== BUZZER ==================
-#define BUZZER   14
 // ================== TFT Display ==================
 #define TFT_MISO 3
 #define TFT_MOSI 7
@@ -23,12 +21,13 @@
 
 
 // New (safe for ESP32-S3 WROOM-1 N16R8 with Octal PSRAM)
-#define BTN1  39
-#define BTN2  40
-#define BTN3  41
-#define BTN4  10
-#define BTN5  38
+#define MIC_BUTTON  39
+#define CAMERA_BUTTON  40
+#define HOME_BUTTON  41
+#define CAST_BUTTON  10
+#define POWER_BUTTON  38
 
 // I2C RTC (standard I2C pins; these are free and portable)
-#define I2C_SDA 22
-#define I2C_SCL 23
+#define I2C_SDA 1
+#define I2C_SCL 2
+#define SQW 14
