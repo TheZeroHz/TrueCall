@@ -6,7 +6,7 @@
 #include <FS.h>
 #include <FFat.h>
 
-#define CREDENTIALS_FILE "/wifi_creds.txt"
+#define CREDENTIALS_FILE "data/wifi_creds.txt"
 #define MAX_SAVED_NETWORKS 10
 
 struct SavedNetwork {

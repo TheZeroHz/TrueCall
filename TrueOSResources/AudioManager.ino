@@ -85,7 +85,7 @@ void audioTask(void* parameter) {
     }
     audio.loop();
     if (!audio.isRunning()) {
-      vTaskDelay(200 / portTICK_PERIOD_MS);
+      vTaskDelay(20 / portTICK_PERIOD_MS);
     }
   }
 }

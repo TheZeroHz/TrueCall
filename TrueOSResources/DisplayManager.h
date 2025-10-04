@@ -1,4 +1,4 @@
-// DisplayManager.h - Display with saved credentials indicator
+// DisplayManager.h - Display with saved credentials indicator and forget option
 #ifndef DISPLAYMANAGER_H
 #define DISPLAYMANAGER_H
 
@@ -50,7 +50,7 @@ public:
         sprite.drawString("WiFi Scanner", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 40, 4);
         
         sprite.setTextColor(COLOR_ACCENT);
-        sprite.drawString("v1.1", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 65, 2);
+        sprite.drawString("v1.2", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 65, 2);
         
         sprite.setTextColor(COLOR_TEXT_DIM);
         sprite.drawString("Initializing...", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30, 2);
@@ -80,7 +80,7 @@ public:
             UIHelper::drawScrollbar(&sprite, scrollOffset, count, VISIBLE_ITEMS);
         }
         
-        UIHelper::drawFooter(&sprite, "Rotate: Scroll  |  Press: Connect  |  Power: Scan");
+        UIHelper::drawFooter(&sprite, "POWER: Scan  |  Press: Connect  |  CAM: Forget");
         
         sprite.pushSprite(0, 0);
     }
