@@ -1,48 +1,123 @@
-// Colors.h - Volos-inspired Color Palette
+// Colors.h - Multi-Theme Color System with Custom Theme
 #ifndef COLORS_H
 #define COLORS_H
 
 #include <stdint.h>
+#include <Preferences.h>
 
-// ================== Primary Colors ==================
-#define COLOR_BG          0x0841   // Dark blue-grey background
-#define COLOR_HEADER      0x1082   // Header background
-#define COLOR_CARD        0x1903   // Card background
-#define COLOR_SELECTED    0x2945   // Selected item highlight
+// Theme definitions
+enum ColorTheme {
+    THEME_DARK_BLUE = 0,
+    THEME_PURE_BLACK = 1,
+    THEME_AMOLED = 2,
+    THEME_OCEAN = 3,
+    THEME_FOREST = 4,
+    THEME_SUNSET = 5,
+    THEME_CUSTOM = 6
+};
 
-// ================== Accent Colors ==================
-#define COLOR_ACCENT      0x07FF   // Cyan accent (primary)
-#define COLOR_ACCENT_DIM  0x0438   // Dimmed cyan
+// Custom theme storage
+struct CustomTheme {
+    uint16_t bg;
+    uint16_t card;
+    uint16_t accent;
+    
+    void save() {
+        Preferences prefs;
+        prefs.begin("customtheme", false);
+        prefs.putUShort("bg", bg);
+        prefs.putUShort("card", card);
+        prefs.putUShort("accent", accent);
+        prefs.end();
+    }
+    
+    void load() {
+        Preferences prefs;
+        prefs.begin("customtheme", true);
+        bg = prefs.getUShort("bg", 0x0841);
+        card = prefs.getUShort("card", 0x1903);
+        accent = prefs.getUShort("accent", 0xFD20);
+        prefs.end();
+    }
+};
+
+// Current theme (extern, defined in WiFiApp.ino)
+extern ColorTheme currentTheme;
+extern CustomTheme customTheme;
+
+// Dynamic color getters
+inline uint16_t getColorBG() {
+    switch(currentTheme) {
+        case THEME_PURE_BLACK: return 0x0000;
+        case THEME_AMOLED: return 0x0000;
+        case THEME_OCEAN: return 0x0010;
+        case THEME_FOREST: return 0x0020;
+        case THEME_SUNSET: return 0x2000;
+        case THEME_CUSTOM: return customTheme.bg;
+        default: return 0x0841;
+    }
+}
+
+inline uint16_t getColorAccent() {
+    switch(currentTheme) {
+        case THEME_PURE_BLACK: return 0xFFFF;
+        case THEME_AMOLED: return 0x07FF;
+        case THEME_OCEAN: return 0x05FF;
+        case THEME_FOREST: return 0x07E0;
+        case THEME_SUNSET: return 0xFD20;
+        case THEME_CUSTOM: return customTheme.accent;
+        default: return 0xFD20;
+    }
+}
+
+inline uint16_t getColorCard() {
+    switch(currentTheme) {
+        case THEME_PURE_BLACK: return 0x1082;
+        case THEME_AMOLED: return 0x0841;
+        case THEME_OCEAN: return 0x1082;
+        case THEME_FOREST: return 0x1082;
+        case THEME_SUNSET: return 0x2104;
+        case THEME_CUSTOM: return customTheme.card;
+        default: return 0x1903;
+    }
+}
+
+// Backward compatibility macros
+#define COLOR_BG getColorBG()
+#define COLOR_HEADER 0x1082
+#define COLOR_CARD getColorCard()
+#define COLOR_SELECTED 0x2945
+#define COLOR_ACCENT getColorAccent()
+#define COLOR_ACCENT_DIM 0xF800
 
 // ================== Text Colors ==================
-#define COLOR_TEXT        0xFFFF   // White text
-#define COLOR_TEXT_DIM    0x8410   // Grey text (secondary)
-#define COLOR_TEXT_DARK   0x4208   // Dark grey text
+#define COLOR_TEXT        0xFFFF
+#define COLOR_TEXT_DIM    0x8410
+#define COLOR_TEXT_DARK   0x4208
 
 // ================== Signal Quality Colors ==================
-#define COLOR_EXCELLENT   0x07E0   // Green (RSSI >= -50)
-#define COLOR_GOOD        0x7FE0   // Yellow-green (RSSI >= -60)
-#define COLOR_FAIR        0xFD20   // Orange (RSSI >= -70)
-#define COLOR_POOR        0xF800   // Red (RSSI < -70)
+#define COLOR_EXCELLENT   0x07E0
+#define COLOR_GOOD        0x7FE0
+#define COLOR_FAIR        0xFD20
+#define COLOR_POOR        0xF800
 
 // ================== UI Element Colors ==================
-#define COLOR_BORDER      0x2965   // Border color
-#define COLOR_SHADOW      0x0020   // Shadow color
-#define COLOR_KEY_BG      0x2124   // Keyboard key background
-#define COLOR_KEY_ACTIVE  0x3186   // Active keyboard key
-#define COLOR_KEY_BORDER  0x4A69   // Key border
+#define COLOR_BORDER      0x2965
+#define COLOR_SHADOW      0x0020
+#define COLOR_KEY_BG      0x2124
+#define COLOR_KEY_ACTIVE  0x3186
+#define COLOR_KEY_BORDER  0x4A69
 
 // ================== Status Colors ==================
-#define COLOR_SUCCESS     0x07E0   // Success green
-#define COLOR_ERROR       0xF800   // Error red
-#define COLOR_WARNING     0xFD20   // Warning orange
-#define COLOR_INFO        0x07FF   // Info cyan
+#define COLOR_SUCCESS     0x07E0
+#define COLOR_ERROR       0xF800
+#define COLOR_WARNING     0xFD20
+#define COLOR_INFO        0x07FF
 
 // ================== RSSI Thresholds ==================
 #define RSSI_EXCELLENT   -50
 #define RSSI_GOOD        -60
 #define RSSI_FAIR        -70
-// Below -70 is POOR
 
 // ================== Helper Functions ==================
 inline uint16_t getSignalColor(int rssi) {
@@ -64,6 +139,11 @@ inline int getSignalBars(int rssi) {
     if (rssi >= RSSI_GOOD) return 3;
     if (rssi >= RSSI_FAIR) return 2;
     return 1;
+}
+
+// RGB565 color converter helper
+inline uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
+    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
 #endif // COLORS_H

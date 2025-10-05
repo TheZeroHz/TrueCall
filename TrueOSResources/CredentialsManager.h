@@ -6,7 +6,7 @@
 #include <FS.h>
 #include <FFat.h>
 
-#define CREDENTIALS_FILE "data/wifi_creds.txt"
+#define CREDENTIALS_FILE "/data/wifi_creds.txt"
 #define MAX_SAVED_NETWORKS 10
 
 struct SavedNetwork {
@@ -26,15 +26,12 @@ private:
 public:
     CredentialsManager() : networkCount(0) {}
     
-    bool begin() {
-        if (!FFat.begin()) {
-            Serial.println("FFat mount failed for credentials");
-            return false;
-        }
-        
-        load();
-        return true;
-    }
+bool begin() {
+    // âœ… Make sure FFat is already mounted (done in setup)
+    // Don't call FFat.begin() here as it's already mounted
+    load();
+    return true;
+}
     
     bool save(const String& ssid, const String& password, int rssi = -50) {
         Serial.printf("\n>>> Saving credentials for '%s'\n", ssid.c_str());

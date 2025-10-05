@@ -130,7 +130,7 @@ public:
         sprite.setTextColor(getSignalColor(network->rssi));
         sprite.setTextDatum(TL_DATUM);
         char info[32];
-        snprintf(info, sizeof(info), "%s  •  Ch%d  •  %s", 
+        snprintf(info, sizeof(info), "%s  â€¢  Ch%d  â€¢  %s", 
                  getSignalText(network->rssi), 
                  network->channel,
                  network->getEncryptionName().c_str());

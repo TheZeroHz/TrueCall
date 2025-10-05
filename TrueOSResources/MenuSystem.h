@@ -16,6 +16,8 @@ enum AppMode {
     APP_DISPLAY_BRIGHTNESS,
     APP_DISPLAY_TIMEOUT,
     APP_VOLUME_CONTROL,
+    APP_THEME_SELECTOR,
+    APP_WALLPAPER_CHANGER,
     APP_RESTART,
     APP_FACTORY_RESET
 };
@@ -37,8 +39,8 @@ private:
     int scrollOffset;
     bool showingSettings;
     
-    const int VISIBLE_MENU_ITEMS = 2;  // Show 2 items at once
-    const int MENU_ITEM_HEIGHT = 80;  // Different name to avoid conflict with Config.h
+    const int VISIBLE_MENU_ITEMS = 2;
+    const int MENU_ITEM_HEIGHT = 80;
     
     void drawIcon(int x, int y, AppMode mode, uint16_t color) {
         int centerX = x + 30;
@@ -64,6 +66,7 @@ private:
             case APP_DISPLAY_BRIGHTNESS:
             case APP_DISPLAY_TIMEOUT:
             case APP_VOLUME_CONTROL:
+            case APP_THEME_SELECTOR:
                 sprite->fillCircle(centerX, centerY, 8, color);
                 for (int i = 0; i < 8; i++) {
                     float angle = i * 45 * PI / 180.0;
@@ -146,23 +149,25 @@ public:
         items[0] = {"Brightness", "Adjust display brightness", COLOR_ACCENT, APP_DISPLAY_BRIGHTNESS, true};
         items[1] = {"Timeout", "Set display sleep timeout", COLOR_INFO, APP_DISPLAY_TIMEOUT, true};
         items[2] = {"Volume", "Adjust audio volume", COLOR_SUCCESS, APP_VOLUME_CONTROL, true};
-        items[3] = {"Restart", "Restart the device", COLOR_WARNING, APP_RESTART, true};
-        items[4] = {"Factory Reset", "Reset all settings", COLOR_ERROR, APP_FACTORY_RESET, true};
-        itemCount = 5;
+        items[3] = {"Theme", "Change color theme", COLOR_WARNING, APP_THEME_SELECTOR, true};
+        items[4] = {"Wallpaper", "Change home wallpaper", COLOR_ACCENT, APP_WALLPAPER_CHANGER, true};
+        items[5] = {"Restart", "Restart the device", COLOR_WARNING, APP_RESTART, true};
+        items[6] = {"Factory Reset", "Reset all settings", COLOR_ERROR, APP_FACTORY_RESET, true};
+        itemCount = 7;
     }
     
-void showMainMenu() {
-    showingSettings = false;
-    selectedIndex = 0;
-    scrollOffset = 0;
-    
-    items[0] = {"WiFi Scanner", "Scan and connect to networks", COLOR_ACCENT, APP_WIFI_SCANNER, false};
-    items[1] = {"AI Assistant", "Voice-powered AI chat", COLOR_SUCCESS, APP_AI_ASSISTANT, false};
-    items[2] = {"Clock Settings", "Set time, date, and alarms", COLOR_INFO, APP_CLOCK_SETTINGS, false};
-    items[3] = {"About/Credits", "Meet the team", COLOR_WARNING, APP_ABOUT_CREDITS, false};
-    items[4] = {"Settings", "App configuration", COLOR_ACCENT, APP_SETTINGS, false};
-    itemCount = 5;
-}
+    void showMainMenu() {
+        showingSettings = false;
+        selectedIndex = 0;
+        scrollOffset = 0;
+        
+        items[0] = {"WiFi Scanner", "Scan and connect to networks", COLOR_ACCENT, APP_WIFI_SCANNER, false};
+        items[1] = {"AI Assistant", "Voice-powered AI chat", COLOR_SUCCESS, APP_AI_ASSISTANT, false};
+        items[2] = {"Clock Settings", "Set time, date, and alarms", COLOR_INFO, APP_CLOCK_SETTINGS, false};
+        items[3] = {"About/Credits", "Meet the team", COLOR_WARNING, APP_ABOUT_CREDITS, false};
+        items[4] = {"Settings", "App configuration", COLOR_ACCENT, APP_SETTINGS, false};
+        itemCount = 5;
+    }
     
     void draw() {
         sprite->fillSprite(COLOR_BG);
@@ -173,21 +178,18 @@ void showMainMenu() {
         
         int startY = HEADER_HEIGHT + 10;
         
-        // Update scroll offset to keep selected item visible
         if (selectedIndex < scrollOffset) {
             scrollOffset = selectedIndex;
         } else if (selectedIndex >= scrollOffset + VISIBLE_MENU_ITEMS) {
             scrollOffset = selectedIndex - VISIBLE_MENU_ITEMS + 1;
         }
         
-        // Draw visible items
         for (int i = 0; i < VISIBLE_MENU_ITEMS && (scrollOffset + i) < itemCount; i++) {
             int index = scrollOffset + i;
             int y = startY + (i * MENU_ITEM_HEIGHT);
             drawMenuItem(index, y, index == selectedIndex);
         }
         
-        // Draw scrollbar if needed
         if (itemCount > VISIBLE_MENU_ITEMS) {
             int scrollbarX = SCREEN_WIDTH - 6;
             int scrollbarY = startY;

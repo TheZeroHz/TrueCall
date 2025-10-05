@@ -28,7 +28,7 @@
 #define BTN_SPECIAL  41  // HOME - Menu/Exit
 #define BTN_SCAN     38  // POWER - WiFi Scan
 
-#define BUTTON_DEBOUNCE_MS  250
+#define BUTTON_DEBOUNCE_MS  20
 
 // ================== I2C RTC ==================
 #define I2C_SDA     1

@@ -1,4 +1,4 @@
-// SettingsUI.h - Settings interface for various device settings
+// SettingsUI.h - FIXED: Faster button response in all settings
 #ifndef SETTINGSUI_H
 #define SETTINGSUI_H
 
@@ -8,12 +8,15 @@
 #include "Config.h"
 #include "Colors.h"
 #include "UIHelper.h"
+#include "AudioManager.h"
+#include "ButtonHandle.h"
 
 class SettingsUI {
 private:
     TFT_eSprite* sprite;
     AiEsp32RotaryEncoder* encoder;
     Preferences prefs;
+    ButtonHandle* buttons; // âœ… Added button handler
     
     void drawSlider(int x, int y, int width, int value, int maxValue, const char* label, const char* unit) {
         sprite->fillRoundRect(x, y, width, 60, 8, COLOR_CARD);
@@ -83,12 +86,209 @@ private:
     
 public:
     SettingsUI(TFT_eSprite* spr, AiEsp32RotaryEncoder* enc) 
-        : sprite(spr), encoder(enc) {}
+        : sprite(spr), encoder(enc), buttons(nullptr) {
+        
+        // âœ… Initialize button handler
+        buttons = new ButtonHandle();
+        buttons->begin();
+    }
     
     void begin() {
         prefs.begin("settings", false);
     }
+
+    void selectTheme() {
+        extern ColorTheme currentTheme;
+        int theme = prefs.getInt("theme", THEME_DARK_BLUE);
+        
+        encoder->reset();
+        encoder->setBoundaries(0, 6, true);
+        encoder->setEncoderValue(theme);
+        
+        bool done = false;
+        int lastEncoderVal = theme;
+        
+        const char* themeNames[] = {
+            "Dark Blue", "Pure Black", "AMOLED", 
+            "Ocean", "Forest", "Sunset", "Custom"
+        };
+        
+        while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
+            if (encoder->encoderChanged()) {
+                int val = encoder->readEncoder();
+                if (val != lastEncoderVal) {
+                    if (FFat.exists("/sounds/feedback/rotary_encoder.wav")) {
+                        audioConnecttoFFat("/sounds/feedback/rotary_encoder.wav");
+                    }
+                    lastEncoderVal = val;
+                }
+                theme = val;
+                currentTheme = (ColorTheme)theme;
+            }
+            
+            if (encoder->isEncoderButtonClicked()) {
+                if (theme == THEME_CUSTOM) {
+                    createCustomTheme();
+                    encoder->reset();
+                    encoder->setBoundaries(0, 6, true);
+                    encoder->setEncoderValue(THEME_CUSTOM);
+                    lastEncoderVal = THEME_CUSTOM;
+                } else {
+                    done = true;
+                    prefs.putInt("theme", theme);
+                }
+                delay(200);
+            }
+            
+            // âœ… Use ButtonHandle for faster response
+            if (buttons && buttons->specialPressed()) {
+                done = true;
+                prefs.putInt("theme", theme);
+            }
+            
+            sprite->fillSprite(COLOR_BG);
+            UIHelper::drawHeader(sprite, "Color Theme", nullptr);
+            
+            int previewY = 50;
+            for (int i = 0; i < 7; i++) {
+                bool selected = (i == theme);
+                int y = previewY + (i * 24);
+                
+                uint16_t bgColor = selected ? COLOR_SELECTED : COLOR_CARD;
+                sprite->fillRoundRect(20, y, 280, 20, 6, bgColor);
+                sprite->drawRoundRect(20, y, 280, 20, 6, selected ? COLOR_ACCENT : COLOR_BORDER);
+                
+                sprite->setTextColor(COLOR_TEXT, bgColor);
+                sprite->setTextDatum(ML_DATUM);
+                sprite->drawString(themeNames[i], 30, y + 10, 2);
+                
+                sprite->fillCircle(270, y + 10, 6, selected ? COLOR_ACCENT : COLOR_TEXT_DIM);
+            }
+            
+            UIHelper::drawFooter(sprite, "Rotate: Select  |  Press: Apply  |  HOME: Save");
+            sprite->pushSprite(0, 0);
+            
+            delay(10);
+        }
+    }
     
+    void createCustomTheme() {
+        extern CustomTheme customTheme;
+        customTheme.load();
+        
+        enum ColorComponent { BG, CARD, ACCENT };
+        ColorComponent editing = BG;
+        
+        uint8_t r = 0, g = 0, b = 0;
+        uint8_t* currentChannel = &r;
+        int channelIndex = 0;
+        
+        auto extractRGB = [](uint16_t color565, uint8_t& r, uint8_t& g, uint8_t& b) {
+            r = (color565 >> 11) << 3;
+            g = ((color565 >> 5) & 0x3F) << 2;
+            b = (color565 & 0x1F) << 3;
+        };
+        
+        extractRGB(customTheme.bg, r, g, b);
+        
+        encoder->reset();
+        encoder->setBoundaries(0, 255, false);
+        encoder->setEncoderValue(r);
+        
+        bool done = false;
+        int lastEncoderVal = r;
+        
+        while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
+            if (encoder->encoderChanged()) {
+                int val = encoder->readEncoder();
+                if (val != lastEncoderVal) {
+                    if (FFat.exists("/sounds/feedback/rotary_encoder.wav")) {
+                        audioConnecttoFFat("/sounds/feedback/rotary_encoder.wav");
+                    }
+                    lastEncoderVal = val;
+                }
+                *currentChannel = val;
+                
+                uint16_t newColor = rgb565(r, g, b);
+                if (editing == BG) customTheme.bg = newColor;
+                else if (editing == CARD) customTheme.card = newColor;
+                else customTheme.accent = newColor;
+            }
+            
+            if (encoder->isEncoderButtonClicked()) {
+                channelIndex = (channelIndex + 1) % 3;
+                if (channelIndex == 0) currentChannel = &r;
+                else if (channelIndex == 1) currentChannel = &g;
+                else currentChannel = &b;
+                
+                encoder->setEncoderValue(*currentChannel);
+                delay(200);
+            }
+            
+            // âœ… Use ButtonHandle for component switch
+            if (buttons && buttons->delPressed()) {
+                editing = (ColorComponent)((editing + 1) % 3);
+                
+                uint16_t currentColor = (editing == BG) ? customTheme.bg : 
+                                       (editing == CARD) ? customTheme.card : customTheme.accent;
+                extractRGB(currentColor, r, g, b);
+                
+                channelIndex = 0;
+                currentChannel = &r;
+                encoder->setEncoderValue(r);
+            }
+            
+            // âœ… Use ButtonHandle for save
+            if (buttons && buttons->specialPressed()) {
+                customTheme.save();
+                done = true;
+            }
+            
+            sprite->fillSprite(COLOR_BG);
+            UIHelper::drawHeader(sprite, "Custom Theme", nullptr);
+            
+            const char* componentNames[] = {"Background", "Card", "Accent"};
+            sprite->setTextColor(COLOR_TEXT);
+            sprite->setTextDatum(MC_DATUM);
+            sprite->drawString(componentNames[editing], SCREEN_WIDTH/2, 50, 2);
+            
+            uint16_t previewColor = rgb565(r, g, b);
+            sprite->fillRoundRect(80, 70, 160, 60, 12, previewColor);
+            sprite->drawRoundRect(80, 70, 160, 60, 12, COLOR_BORDER);
+            
+            const char* channels[] = {"R", "G", "B"};
+            uint8_t values[] = {r, g, b};
+            
+            for (int i = 0; i < 3; i++) {
+                int y = 140 + (i * 20);
+                bool active = (i == channelIndex);
+                
+                sprite->setTextColor(active ? COLOR_ACCENT : COLOR_TEXT_DIM);
+                sprite->setTextDatum(ML_DATUM);
+                sprite->drawString(channels[i], 20, y + 8, 2);
+                
+                sprite->fillRoundRect(50, y, 200, 16, 4, COLOR_CARD);
+                int barWidth = map(values[i], 0, 255, 0, 200);
+                sprite->fillRoundRect(50, y, barWidth, 16, 4, active ? COLOR_ACCENT : COLOR_TEXT_DIM);
+                
+                sprite->setTextColor(COLOR_TEXT);
+                sprite->setTextDatum(MR_DATUM);
+                sprite->drawString(String(values[i]), 280, y + 8, 2);
+            }
+            
+            UIHelper::drawFooter(sprite, "Press: Channel  |  CAM: Component  |  HOME: Save");
+            sprite->pushSprite(0, 0);
+            
+            delay(10);
+        }
+    }
+
     void adjustBrightness() {
         int brightness = prefs.getInt("brightness", 255);
         
@@ -99,15 +299,18 @@ public:
         bool done = false;
         
         while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
             if (encoder->encoderChanged()) {
                 brightness = encoder->readEncoder();
                 analogWrite(TFT_BL, brightness);
             }
             
-            if (encoder->isEncoderButtonClicked() || digitalRead(BTN_SPECIAL) == LOW) {
+            // âœ… Use ButtonHandle for save/cancel
+            if (encoder->isEncoderButtonClicked() || (buttons && buttons->specialPressed())) {
                 done = true;
                 prefs.putInt("brightness", brightness);
-                delay(300);
             }
             
             sprite->fillSprite(COLOR_BG);
@@ -134,14 +337,17 @@ public:
         bool done = false;
         
         while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
             if (encoder->encoderChanged()) {
                 timeout = encoder->readEncoder();
             }
             
-            if (encoder->isEncoderButtonClicked() || digitalRead(BTN_SPECIAL) == LOW) {
+            // âœ… Use ButtonHandle for save/cancel
+            if (encoder->isEncoderButtonClicked() || (buttons && buttons->specialPressed())) {
                 done = true;
                 prefs.putInt("timeout", timeout);
-                delay(300);
             }
             
             sprite->fillSprite(COLOR_BG);
@@ -166,14 +372,17 @@ public:
         bool done = false;
         
         while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
             if (encoder->encoderChanged()) {
                 volume = encoder->readEncoder();
             }
             
-            if (encoder->isEncoderButtonClicked() || digitalRead(BTN_SPECIAL) == LOW) {
+            // âœ… Use ButtonHandle for save/cancel
+            if (encoder->isEncoderButtonClicked() || (buttons && buttons->specialPressed())) {
                 done = true;
                 prefs.putInt("volume", volume);
-                delay(300);
             }
             
             sprite->fillSprite(COLOR_BG);
@@ -197,17 +406,20 @@ public:
         bool done = false;
         
         while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
             int selection = encoder->readEncoder();
             
             if (encoder->isEncoderButtonClicked()) {
                 confirmed = (selection == 1);
                 done = true;
-                delay(300);
+                delay(200);
             }
             
-            if (digitalRead(BTN_SPECIAL) == LOW) {
+            // âœ… Use ButtonHandle for cancel
+            if (buttons && buttons->specialPressed()) {
                 done = true;
-                delay(300);
             }
             
             sprite->fillSprite(COLOR_BG);
@@ -229,17 +441,20 @@ public:
         bool done = false;
         
         while (!done) {
+            // âœ… Update buttons every loop
+            if (buttons) buttons->update();
+            
             int selection = encoder->readEncoder();
             
             if (encoder->isEncoderButtonClicked()) {
                 confirmed = (selection == 1);
                 done = true;
-                delay(300);
+                delay(200);
             }
             
-            if (digitalRead(BTN_SPECIAL) == LOW) {
+            // âœ… Use ButtonHandle for cancel
+            if (buttons && buttons->specialPressed()) {
                 done = true;
-                delay(300);
             }
             
             sprite->fillSprite(COLOR_BG);
