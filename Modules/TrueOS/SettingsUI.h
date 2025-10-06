@@ -16,7 +16,7 @@ private:
     TFT_eSprite* sprite;
     AiEsp32RotaryEncoder* encoder;
     Preferences prefs;
-    ButtonHandle* buttons; // âœ… Added button handler
+    ButtonHandle* buttons; // Added button handler
     
     void drawSlider(int x, int y, int width, int value, int maxValue, const char* label, const char* unit) {
         sprite->fillRoundRect(x, y, width, 60, 8, COLOR_CARD);
@@ -208,9 +208,6 @@ public:
             if (encoder->encoderChanged()) {
                 int val = encoder->readEncoder();
                 if (val != lastEncoderVal) {
-                    if (FFat.exists("/sounds/feedback/rotary_encoder.wav")) {
-                        audioConnecttoFFat("/sounds/feedback/rotary_encoder.wav");
-                    }
                     lastEncoderVal = val;
                 }
                 *currentChannel = val;

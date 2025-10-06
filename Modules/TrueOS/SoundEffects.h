@@ -1,6 +1,6 @@
-// AudioManager.h - INSTANT tone-based feedback with multiple sound types
-#ifndef AUDIOMANAGER_H
-#define AUDIOMANAGER_H
+// SoundEffects.h - INSTANT tone-based feedback with multiple sound types
+#ifndef SOUNDEFFECTS_H
+#define SOUNDEFFECTS_H
 #include <driver/i2s.h>
 
 #define I2S_DOUT 11
@@ -32,7 +32,7 @@
 #define WARN_FREQ 1400
 #define WARN_DURATION_MS 60
 
-class AudioManager {
+class SoundEffects {
 private:
     i2s_port_t i2s_num;
     uint8_t volume;
@@ -77,7 +77,7 @@ private:
     }
     
 public:
-    AudioManager() : i2s_num(I2S_NUM_0), volume(10) {}
+    SoundEffects() : i2s_num(I2S_NUM_0), volume(10) {}
     
     bool begin() {
         Serial.println("[Audio] Initializing I2S tone generator...");
@@ -113,7 +113,7 @@ public:
             return false;
         }
         
-        Serial.println("[Audio] âœ“ Tone generator ready");
+        Serial.println("[Audio] Tone generator ready");
         return true;
     }
     
@@ -185,6 +185,6 @@ public:
 };
 
 // Global instance
-AudioManager audioMgr;
+SoundEffects Effect;
 
 #endif

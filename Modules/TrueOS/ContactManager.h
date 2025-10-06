@@ -420,10 +420,10 @@ public:
     void loadContacts() {
         contactCount = 3;
         
-        contacts[0].name = "Rakib Hasan";
-        contacts[0].role = "CEO - N.A.M.O.R. Inc.";
-        contacts[0].phone = "+880 1234-567890";
-        contacts[0].imagePath = "/team/rakib.jpg";
+        contacts[0].name = "Saiful Islam";
+        contacts[0].role = "PS to VC";
+        contacts[0].phone = "+880248036350";
+        contacts[0].imagePath = "/contact/saiful.jpg";
         contacts[0].espnowMAC[0] = 0xAA;
         contacts[0].espnowMAC[1] = 0xBB;
         contacts[0].espnowMAC[2] = 0xCC;
@@ -431,10 +431,10 @@ public:
         contacts[0].espnowMAC[4] = 0xEE;
         contacts[0].espnowMAC[5] = 0x01;
         
-        contacts[1].name = "Sahadat Sani";
-        contacts[1].role = "CTO - N.A.M.O.R. Inc.";
-        contacts[1].phone = "+880 1234-567891";
-        contacts[1].imagePath = "/team/sani.jpg";
+        contacts[1].name = "Eshan Jambil";
+        contacts[1].role = "PA to VC";
+        contacts[1].phone = "+880248036351";
+        contacts[1].imagePath = "/contact/eshan.jpg";
         contacts[1].espnowMAC[0] = 0xAA;
         contacts[1].espnowMAC[1] = 0xBB;
         contacts[1].espnowMAC[2] = 0xCC;
@@ -442,10 +442,10 @@ public:
         contacts[1].espnowMAC[4] = 0xEE;
         contacts[1].espnowMAC[5] = 0x02;
         
-        contacts[2].name = "A B M Shawkat Ali";
-        contacts[2].role = "Director - N.A.M.O.R. Inc.";
-        contacts[2].phone = "+880 1234-567892";
-        contacts[2].imagePath = "/team/shawkat.jpg";
+        contacts[2].name = "Altab Hossen";
+        contacts[2].role = "MLSS to VC";
+        contacts[2].phone = "+8801764129694";
+        contacts[2].imagePath = "/contact/guy.jpg";
         contacts[2].espnowMAC[0] = 0xAA;
         contacts[2].espnowMAC[1] = 0xBB;
         contacts[2].espnowMAC[2] = 0xCC;
@@ -610,18 +610,20 @@ public:
             
             int iconY = cardY + cardHeight + 15;
             
-            sprite->fillRoundRect(40, iconY - 15, 100, 25, 8, COLOR_INFO);
+            sprite->fillRoundRect(20, iconY, 130, 25, 1, COLOR_TEXT_DIM);
+            sprite->drawRoundRect(20, iconY, 130, 25, 2, COLOR_ACCENT);
             sprite->setTextColor(TFT_WHITE);
             sprite->setTextDatum(MC_DATUM);
-            sprite->drawString("PUSH: Firebase", 90, iconY - 2, 1);
+            sprite->drawString("Press : CloudCall", 90, iconY +13, 2);
             
-            sprite->fillRoundRect(180, iconY - 15, 100, 25, 8, COLOR_SUCCESS);
+            sprite->fillRoundRect(170, iconY , 130, 25, 1, COLOR_TEXT_DIM);
+            sprite->drawRoundRect(170, iconY, 130, 25, 2, COLOR_ACCENT);
             sprite->setTextColor(TFT_WHITE);
-            sprite->drawString("CAST: ESP-NOW", 230, iconY - 2, 1);
+            sprite->drawString("Cast : LocalCall", 230, iconY +13, 2);
             
             sprite->setTextColor(COLOR_TEXT_DIM);
             sprite->setTextDatum(MC_DATUM);
-            sprite->drawString("HOME: Exit", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 10, 1);
+            sprite->drawString("HOME : Exit", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 10, 1);
             
             sprite->pushSprite(0, 0);
             delay(10);

@@ -3,11 +3,11 @@
  * ALL ORIGINAL FEATURES + Power button network checks + Encoder fixes
  * 
  * NEW FEATURES ADDED (not removed):
- * âœ… Power single click = Check WiFi connection
- * âœ… Power double click = ESP-NOW availability check  
- * âœ… Power hold = Deep sleep
- * âœ… Encoder resets on every mode change
- * âœ… All original features preserved
+ *  Power single click = Check WiFi connection
+ *  Power double click = ESP-NOW availability check  
+ *  Power hold = Deep sleep
+ *  Encoder resets on every mode change
+ *  All original features preserved
  */
 
 #include <Arduino.h>
@@ -22,7 +22,7 @@
 #include <DS3231.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
-#include <driver/i2s.h>  // âœ… NEW: For I2S tone generation
+#include <driver/i2s.h>  //  NEW: For I2S tone generation
 #include "esp_sleep.h"
 
 #include "Config.h"
@@ -45,30 +45,7 @@
 #include "BootScreen.h"
 #include "ContactManager.h"
 #include "ButtonHandle.h"
-
-// âœ… NEW: I2S Tone Configuration - Different sounds for different actions
-#define I2S_SAMPLE_RATE 44100
-
-// Sound definitions
-#define TICK_FREQUENCY 2000       // Menu item change - crisp tick
-#define TICK_DURATION_MS 15
-
-#define CLICK_FREQUENCY 2500      // Button press - higher pitched
-#define CLICK_DURATION_MS 25
-
-#define SELECT_FREQUENCY_1 1800   // Selection confirm - two-tone
-#define SELECT_FREQUENCY_2 2400
-#define SELECT_DURATION_MS 40
-
-#define BACK_FREQUENCY 1500       // Back/cancel - lower tone
-#define BACK_DURATION_MS 30
-
-#define ERROR_FREQUENCY 800       // Error/warning - low buzz
-#define ERROR_DURATION_MS 100
-
-#define SUCCESS_FREQUENCY_1 2000  // Success - ascending tone
-#define SUCCESS_FREQUENCY_2 2800
-#define SUCCESS_DURATION_MS 60
+#include "SoundEffects.h"
 
 // ==================== Global Objects (UNCHANGED) ====================
 TFT_eSPI tft = TFT_eSPI();
@@ -88,7 +65,7 @@ ButtonHandle* buttons = nullptr;
 ColorTheme currentTheme = THEME_DARK_BLUE;
 CustomTheme customTheme;
 
-// RTC State (UNCHANGED)
+// RTC State
 uint16_t rtcYear = 2025;
 uint8_t rtcMonth = 10, rtcDay = 4, rtcHour = 12, rtcMin = 0, rtcSec = 0;
 uint8_t rtcDoW = 1;
@@ -99,11 +76,10 @@ bool powerButtonHeld = false;
 bool rtcAvailable = false;
 volatile bool colonBlink = false;
 
-// âœ… NEW: Power button click detection (ADDED, not replaced)
+//Power button click detection (ADDED, not replaced)
 unsigned long lastPowerClick = 0;
 int powerClickCount = 0;
 #define DOUBLE_CLICK_TIME 500
-
 #define POWER_HOLD_TIME 2500
 #define WAKEUP_PIN BTN_SELECT
 #define RTC_SYNC_INTERVAL 1000
@@ -140,76 +116,20 @@ void IRAM_ATTR encoderISR() {
     encoder.readEncoder_ISR();
 }
 
-// âœ… NEW: I2S Tone Generation for Different Sounds
-void playI2STone(uint16_t frequency, uint16_t durationMs, float amplitude = 0.3) {
-    const int sampleCount = (I2S_SAMPLE_RATE * durationMs) / 1000;
-    const int bufferSize = sampleCount * 2; // 16-bit stereo
-    int16_t* samples = (int16_t*)malloc(bufferSize * sizeof(int16_t));
-    
-    if (!samples) return;
-    
-    // Generate sine wave with envelope
-    for (int i = 0; i < sampleCount; i++) {
-        float t = (float)i / I2S_SAMPLE_RATE;
-        float angle = 2.0 * PI * frequency * t;
-        
-        // Apply envelope (attack-decay-sustain-release)
-        float envelope = 1.0;
-        float attackTime = 0.05;   // 5% attack
-        float releaseTime = 0.4;   // 40% release
-        
-        if (i < sampleCount * attackTime) {
-            envelope = (float)i / (sampleCount * attackTime);
-        } else if (i > sampleCount * (1.0 - releaseTime)) {
-            envelope = (float)(sampleCount - i) / (sampleCount * releaseTime);
-        }
-        
-        int16_t sample = (int16_t)(sin(angle) * 32767 * amplitude * envelope);
-        samples[i * 2] = sample;     // Left channel
-        samples[i * 2 + 1] = sample; // Right channel
-    }
-    
-    // Write to I2S (non-blocking)
-    size_t bytes_written;
-    i2s_write(I2S_NUM_0, samples, bufferSize * sizeof(int16_t), &bytes_written, 0);
-    
-    free(samples);
-}
 
-// âœ… NEW: Two-tone sound (for select/success)
-void playI2SDualTone(uint16_t freq1, uint16_t freq2, uint16_t durationMs) {
-    playI2STone(freq1, durationMs / 2, 0.3);
-    vTaskDelay(5 / portTICK_PERIOD_MS);
-    playI2STone(freq2, durationMs / 2, 0.3);
-}
-
-// âœ… NEW: Specific sound functions
-void playTickSound() {
-    playI2STone(TICK_FREQUENCY, TICK_DURATION_MS, 0.25); // Gentle tick
-}
-
-void playClickSound() {
-    playI2STone(CLICK_FREQUENCY, CLICK_DURATION_MS, 0.3); // Button click
-}
-
-void playSelectSound() {
-    playI2SDualTone(SELECT_FREQUENCY_1, SELECT_FREQUENCY_2, SELECT_DURATION_MS);
-}
-
-void playBackSound() {
-    playI2STone(BACK_FREQUENCY, BACK_DURATION_MS, 0.3);
-}
-
-void playErrorSound() {
-    playI2STone(ERROR_FREQUENCY, ERROR_DURATION_MS, 0.4);
-}
-
-void playSuccessSound() {
-    playI2SDualTone(SUCCESS_FREQUENCY_1, SUCCESS_FREQUENCY_2, SUCCESS_DURATION_MS);
-}
-
-// âœ… SIMPLIFIED: WiFi connectivity check (no external library needed)
+// WiFi connectivity check (no external library needed)
 bool checkInternetConnection() {
+    if (credsMgr && credsMgr->load() && credsMgr->getCount() > 0) {
+        SavedNetwork* recent = credsMgr->getMostRecent();
+        if (recent) {
+            WiFi.begin(recent->ssid.c_str(), recent->password.c_str());
+            unsigned long start = millis();
+            while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+                delay(100);
+            }
+        }
+    }
+
     if (WiFi.status() != WL_CONNECTED) {
         return false;
     }
@@ -260,16 +180,15 @@ bool checkESPNowPeer() {
     esp_err_t result = esp_now_send(testMAC, (uint8_t*)testMsg, strlen(testMsg));
     esp_now_del_peer(testMAC);
     esp_now_deinit();
-    
     return (result == ESP_OK);
 }
 
 void showNetworkCheckResult(bool success, const char* type) {
-    // âœ… Play appropriate sound
+    //Play appropriate sound
     if (success) {
-        playSuccessSound();
+        //playSuccessSound();
     } else {
-        playErrorSound();
+        //playErrorSound();
     }
     
     sprite.fillSprite(COLOR_BG);
@@ -312,9 +231,9 @@ void showNetworkCheckResult(bool success, const char* type) {
     delay(2000);
 }
 
-// âœ… COPY THIS ENTIRE PART 1 FIRST, THEN PART 2 REMAINS THE SAME
+//  COPY THIS ENTIRE PART 1 FIRST, THEN PART 2 REMAINS THE SAME
 
-// âœ… PART 2 - PASTE THIS AFTER PART 1
+//  PART 2 - PASTE THIS AFTER PART 1
 
 // ==================== AppStateManager Functions (WITH ENCODER RESETS) ====================
 void AppStateManager::handleMenuSelection(AppMode selectedApp) {
@@ -340,7 +259,7 @@ void AppStateManager::handleMenuSelection(AppMode selectedApp) {
         }
         isScanning = false;
         
-        // âœ… Encoder reset
+        // Encoder reset
         encoder->reset();
         encoder->setBoundaries(0, max(0, wifiScanner->getNetworkCount() - 1), true);
         encoder->setEncoderValue(0);
@@ -360,7 +279,7 @@ void AppStateManager::handleMenuSelection(AppMode selectedApp) {
                 }
             }
             if (!aiChatUI) aiChatUI = new AIChatUI(sprite, aiAssistant);
-            // âœ… Encoder reset
+            // Encoder reset
             encoder->reset();
             encoder->setBoundaries(-1000, 1000, false);
             encoder->setEncoderValue(0);
@@ -374,20 +293,20 @@ void AppStateManager::handleMenuSelection(AppMode selectedApp) {
     } else if (selectedApp == APP_CLOCK_SETTINGS) {
         if (!clockSettingsUI) clockSettingsUI = new ClockSettingsUI(sprite, encoder, rtc);
         clockSettingsUI->show();
-        // âœ… Encoder reset
+        //  Encoder reset
         encoder->reset();
         encoder->setBoundaries(0, menu->getItemCount() - 1, true);
         encoder->setEncoderValue(menu->getSelected());
     } else if (selectedApp == APP_ABOUT_CREDITS) {
         if (!aboutUI) aboutUI = new AboutUI(sprite, encoder, tft);
         aboutUI->show();
-        // âœ… Encoder reset
+        //  Encoder reset
         encoder->reset();
         encoder->setBoundaries(0, menu->getItemCount() - 1, true);
         encoder->setEncoderValue(menu->getSelected());
     } else if (selectedApp == APP_SETTINGS) {
         menu->showSettings();
-        // âœ… Encoder reset
+        //  Encoder reset
         encoder->reset();
         encoder->setBoundaries(0, menu->getItemCount() - 1, true);
         encoder->setEncoderValue(0);
@@ -461,7 +380,7 @@ void enterDeepSleep() {
     esp_deep_sleep_start();
 }
 
-// âœ… ENHANCED: Power button with click detection
+//  ENHANCED: Power button with click detection
 void checkPowerButton() {
     buttons->update();
     
@@ -491,7 +410,7 @@ void checkPowerButton() {
     // Check for single click timeout
     if (powerClickCount == 1 && millis() - lastPowerClick > DOUBLE_CLICK_TIME) {
         // Single click confirmed!
-        bool result = checkInternetConnection(); // âœ… CHANGED from pingGoogle()
+        bool result = checkInternetConnection(); //CHANGED from pingGoogle()
         showNetworkCheckResult(result, "Internet Check");
         powerClickCount = 0;
         lastPowerClick = 0;
@@ -606,12 +525,12 @@ void drawWatchFace() {
     else if (displayHour == 12) isPM = true;
     else if (displayHour > 12) { displayHour -= 12; isPM = true; }
     
-    int cardWidth = 260, cardHeight = 80;
+    int cardWidth = 215, cardHeight = 80;
     int panelX = (SCREEN_WIDTH - cardWidth) / 2;
     int panelY = (SCREEN_HEIGHT - cardHeight) / 2 - 20;
     
-    sprite.fillRoundRect(panelX, panelY, cardWidth, cardHeight, 16, COLOR_CARD);
-    sprite.drawRoundRect(panelX, panelY, cardWidth, cardHeight, 16, COLOR_ACCENT);
+    //sprite.fillRoundRect(panelX+20, panelY, cardWidth, cardHeight, 16, COLOR_CARD);
+    //sprite.drawRoundRect(panelX+20, panelY, cardWidth, cardHeight, 16, COLOR_ACCENT);
     
     sprite.setTextColor(COLOR_ACCENT);
     sprite.setTextDatum(MC_DATUM);
@@ -631,11 +550,11 @@ void drawWatchFace() {
     sprite.drawString(":", SCREEN_WIDTH / 2, panelY + 35, 7);
     
     sprite.setTextColor(COLOR_ACCENT);
-    sprite.drawString(minStr, SCREEN_WIDTH / 2 + 50, panelY + 35, 7);
+    sprite.drawString(minStr, SCREEN_WIDTH / 2 + 42, panelY + 35, 7);
     
-    sprite.setTextColor(COLOR_TEXT_DIM);
+    sprite.setTextColor(COLOR_ACCENT);
     sprite.setTextDatum(MR_DATUM);
-    sprite.drawString(isPM ? "PM" : "AM", panelX + cardWidth - 10, panelY + 35, 2);
+    sprite.drawString(isPM ? "PM" : "AM", panelX + cardWidth - 10, panelY + 70, 4);
     
     int iconY = SCREEN_HEIGHT - 85;
     int totalWidth = 4 * 60 + 3 * 15;
@@ -650,15 +569,14 @@ void drawWatchFace() {
     if (powerButtonHeld) {
         unsigned long holdDuration = millis() - powerButtonHoldStart;
         int progress = constrain(map(holdDuration, 0, POWER_HOLD_TIME, 0, 100), 0, 100);
-        
-        sprite.fillScreen(TFT_BLACK);
+        sprite.fillSprite(TFT_BLACK);
         sprite.setTextColor(TFT_WHITE);
         sprite.setTextDatum(MC_DATUM);
         sprite.drawString("Release to Cancel", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 50, 2);
         sprite.fillRoundRect(40, SCREEN_HEIGHT/2 - 20, 240, 40, 12, TFT_DARKGREY);
         sprite.drawRoundRect(40, SCREEN_HEIGHT/2 - 20, 240, 40, 12, COLOR_ACCENT);
         sprite.setTextColor(COLOR_ACCENT);
-        sprite.drawString("Hold to Sleep...", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 5, 4);
+        sprite.drawString("Hold to Shutdown...", SCREEN_WIDTH/2, SCREEN_HEIGHT/2 - 5, 4);
         
         int barWidth = map(progress, 0, 100, 0, 220);
         sprite.fillRoundRect(50, SCREEN_HEIGHT/2 + 25, barWidth, 15, 7, COLOR_ACCENT);
@@ -690,7 +608,7 @@ void handleWatchMode() {
         int pos = encoder.readEncoder();
         if (abs(pos - lastEncoderPos) >= 1) {
             if (contactMgr) {
-                playSelectSound(); // âœ… Play select sound when opening contacts
+                 // … Play select sound when opening contacts
                 contactMgr->show();
                 encoder.reset();
                 encoder.setBoundaries(-1000, 1000, false);
@@ -709,7 +627,7 @@ void handleWatchMode() {
     
     buttons->update();
     if (buttons->specialPressed()) {
-        playClickSound(); // âœ… Play click for menu button
+        //Play click for menu button
         appState->setCurrentMode(MODE_MENU);
         if (!menu) menu = new MenuSystem(&sprite, &tft);
         menu->showMainMenu();
@@ -740,17 +658,18 @@ void handleMenuMode() {
     
     if (encoder.encoderChanged()) {
         int val = encoder.readEncoder();
-        // âœ… ONLY play tick when menu item ACTUALLY CHANGES
+        // play tick when menu item ACTUALLY CHANGES
         if (val != lastEncoderVal) {
-            playTickSound(); // âœ… Tick only on item change
+           //Tick only on item change
             lastEncoderVal = val;
             menu->setSelected(val);
             menu->draw();
+            delay(50);
         }
     }
     
     if (encoder.isEncoderButtonClicked()) {
-        playSelectSound(); // âœ… Play select sound for encoder button
+        //Play select sound for encoder button
         AppMode selectedApp = menu->getSelectedMode();
         
         if (selectedApp == APP_WALLPAPER_CHANGER) {
@@ -773,7 +692,7 @@ void handleMenuMode() {
     }
     
     if (buttons->specialPressed()) {
-        playBackSound(); // âœ… Play back sound for home button
+        //Play back sound for home button
         if (menu->isShowingSettings()) {
             menu->showMainMenu();
             encoder.reset();
@@ -791,8 +710,6 @@ void handleMenuMode() {
 
 void setup() {
     Serial.begin(115200);
-    delay(1000);
-    
     tft.init();
     tft.setRotation(DISPLAY_ROTATION);
     tft.fillScreen(TFT_BLACK);
@@ -801,8 +718,6 @@ void setup() {
     
     bootScreen = new BootScreen(&tft);
     bootScreen->show();
-    delay(3000);
-    
     Wire.begin(I2C_SDA, I2C_SCL);
     rtcAvailable = true;
     syncWithRTC();
@@ -813,9 +728,8 @@ void setup() {
     sprite.setSwapBytes(true);
     sprite.setTextWrap(false);
     
-    if (!FFat.begin(true, "/ffat")) {
-        FFat.format();
-        FFat.begin(true, "/ffat");
+    if (!FFat.begin(true)) {
+        Serial.println("FFAT Not Initiated");
     }
     
     encoder.begin();
@@ -825,7 +739,6 @@ void setup() {
     
     buttons = new ButtonHandle();
     buttons->begin();
-    
     displayMgr = new DisplayManager(&tft);
     displayMgr->begin();
     
@@ -834,54 +747,35 @@ void setup() {
     currentTheme = (ColorTheme)themePrefs.getInt("theme", THEME_DARK_BLUE);
     themePrefs.end();
     customTheme.load();
-    
     credsMgr = new CredentialsManager();
     credsMgr->begin();
-    
     menu = new MenuSystem(&sprite, &tft);
-    
     appState = new AppStateManager(&sprite, &encoder, &rtc, &tft);
     appState->initializeManagers(displayMgr, credsMgr);
     appState->setMenu(menu);
-    
     wallpaperMgr = new WallpaperManager(&sprite, &encoder, &tft);
     contactMgr = new ContactManager(&sprite, &encoder, &tft);
-    
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-    
-    if (credsMgr && credsMgr->load() && credsMgr->getCount() > 0) {
-        SavedNetwork* recent = credsMgr->getMostRecent();
-        if (recent) {
-            WiFi.begin(recent->ssid.c_str(), recent->password.c_str());
-            unsigned long start = millis();
-            while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
-                delay(100);
-            }
-        }
-    }
-    
-    xTaskCreatePinnedToCore(colonBlinkTask, "ColonBlink", 2048, NULL, 1, &colonBlinkTaskHandle, 0);
-    xTaskCreatePinnedToCore(rtcSyncTask, "RTCSync", 2048, NULL, 1, &rtcSyncTaskHandle, 0);
-    
+    xTaskCreatePinnedToCore(colonBlinkTask, "ColonBlink", 2048, NULL, 1, &colonBlinkTaskHandle, 1);
+    xTaskCreatePinnedToCore(rtcSyncTask, "RTCSync", 2048, NULL, 1, &rtcSyncTaskHandle, 1);
     Serial.println("\n=================================");
     Serial.println("System Ready!");
     Serial.println("=================================");
     Serial.println("Features:");
-    Serial.println("âœ… I2S sound effects");
-    Serial.println("âœ… Blinking colon (FreeRTOS)");
-    Serial.println("âœ… Date in status bar");
-    Serial.println("âœ… Power single/double click");
-    Serial.println("âœ… Encoder auto-reset");
+    Serial.println("I2S sound effects");
+    Serial.println("Blinking colon (FreeRTOS)");
+    Serial.println("Date in status bar");
+    Serial.println("Power single/double click");
+    Serial.println("Encoder auto-reset");
     Serial.println("=================================\n");
-    
     audioInit();
     audioSetVolume(15);
     lastRTCSync = millis();
 }
 
 void loop() {
-    if (millis() - lastButtonCheck > 20) {
+    if (millis() - lastButtonCheck > 10) {
         lastButtonCheck = millis();
         
         SystemMode currentMode = appState->getCurrentMode();

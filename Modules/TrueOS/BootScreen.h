@@ -53,7 +53,7 @@ public:
         
         // Boot header
         tft->setTextColor(TFT_CYAN, TFT_BLACK);
-        tft->println("ESP32 Smart Watch v1.0");
+        tft->println("TrueCall V 2.0");
         tft->setTextColor(TFT_WHITE, TFT_BLACK);
         tft->println("Booting system...");
         tft->println("");
