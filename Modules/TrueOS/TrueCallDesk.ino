@@ -554,7 +554,7 @@ void drawWatchFace() {
     
     sprite.setTextColor(COLOR_ACCENT);
     sprite.setTextDatum(MR_DATUM);
-    sprite.drawString(isPM ? "PM" : "AM", panelX + cardWidth - 10, panelY + 70, 4);
+    sprite.drawString(isPM ? "PM" : "AM", panelX + cardWidth +10, panelY + 50, 4);
     
     int iconY = SCREEN_HEIGHT - 85;
     int totalWidth = 4 * 60 + 3 * 15;

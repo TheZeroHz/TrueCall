@@ -141,13 +141,13 @@ public:
           scrollOffset(0), showingSettings(false) {
         
         // Main menu items with JPEG icons
-        items[0] = {"WiFi Scanner", "Scan and connect to networks", 
+        items[0] = {"WiFi Manger", "Scan and connect to networks", 
                     "/menu_icons/wifi.jpg", COLOR_ACCENT, APP_WIFI_SCANNER, false};
         items[1] = {"AI Assistant", "Voice-powered AI chat", 
                     "/menu_icons/ai.jpg", COLOR_SUCCESS, APP_AI_ASSISTANT, false};
-        items[2] = {"Clock Settings", "Set time, date, and alarms", 
+        items[2] = {"Clock", "Set time, date, and alarms", 
                     "/menu_icons/clock.jpg", COLOR_INFO, APP_CLOCK_SETTINGS, false};
-        items[3] = {"About/Credits", "Meet the team", 
+        items[3] = {"Credits", "Meet the team", 
                     "/menu_icons/about.jpg", COLOR_WARNING, APP_ABOUT_CREDITS, false};
         items[4] = {"Settings", "App configuration", 
                     "/menu_icons/settings.jpg", COLOR_ACCENT, APP_SETTINGS, false};
