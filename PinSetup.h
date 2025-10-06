@@ -30,4 +30,3 @@
 // I2C RTC (standard I2C pins; these are free and portable)
 #define I2C_SDA 1
 #define I2C_SCL 2
-#define SQW 14
