@@ -135,7 +135,7 @@ private:
 public:
     MenuSystem(TFT_eSprite* spr) : sprite(spr), itemCount(0), selectedIndex(0), 
                                     scrollOffset(0), showingSettings(false) {
-        items[0] = {"WiFi Scanner", "Scan and connect to networks", COLOR_ACCENT, APP_WIFI_SCANNER, false};
+        items[0] = {"WiFi Manager", "Scan and connect to networks", COLOR_ACCENT, APP_WIFI_SCANNER, false};
         items[1] = {"AI Assistant", "Voice-powered AI chat", COLOR_SUCCESS, APP_AI_ASSISTANT, false};
         items[2] = {"Settings", "App configuration", COLOR_WARNING, APP_SETTINGS, false};
         itemCount = 3;
@@ -161,7 +161,7 @@ public:
         selectedIndex = 0;
         scrollOffset = 0;
         
-        items[0] = {"WiFi Scanner", "Scan and connect to networks", COLOR_ACCENT, APP_WIFI_SCANNER, false};
+        items[0] = {"WiFi Manager", "Scan and connect to networks", COLOR_ACCENT, APP_WIFI_SCANNER, false};
         items[1] = {"AI Assistant", "Voice-powered AI chat", COLOR_SUCCESS, APP_AI_ASSISTANT, false};
         items[2] = {"Clock Settings", "Set time, date, and alarms", COLOR_INFO, APP_CLOCK_SETTINGS, false};
         items[3] = {"About/Credits", "Meet the team", COLOR_WARNING, APP_ABOUT_CREDITS, false};

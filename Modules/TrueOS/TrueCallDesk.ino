@@ -432,7 +432,7 @@ void checkPowerButton() {
 
 void drawTopStatusBar() {
     for (int i = 0; i < 24; i++) {
-        uint8_t alpha = 255 - (i * 10);
+        uint8_t alpha = 255 - (i * 7);
         uint16_t overlayColor = sprite.color565(alpha/16, alpha/16, alpha/16);
         sprite.drawFastHLine(0, i, SCREEN_WIDTH, overlayColor);
     }
@@ -453,8 +453,8 @@ void drawTopStatusBar() {
         int rssi = WiFi.RSSI();
         UIHelper::drawSignalBars(&sprite, wifiX, wifiY, rssi);
     } else {
-        sprite.drawLine(wifiX, wifiY + 8, wifiX + 16, wifiY + 16, COLOR_ERROR);
-        sprite.drawLine(wifiX + 16, wifiY + 8, wifiX, wifiY + 16, COLOR_ERROR);
+        sprite.drawLine(wifiX, wifiY-5, wifiX + 16, wifiY + 16, COLOR_ERROR);
+        sprite.drawLine(wifiX + 16, wifiY-5, wifiX, wifiY + 16, COLOR_ERROR);
     }
 }
 
@@ -547,10 +547,10 @@ void drawWatchFace() {
         (COLOR_ACCENT & 0x1F) >> 2
     );
     sprite.setTextColor(colonColor);
-    sprite.drawString(":", SCREEN_WIDTH / 2, panelY + 35, 7);
+    sprite.drawString(":",-8+SCREEN_WIDTH / 2, panelY + 35, 7);
     
     sprite.setTextColor(COLOR_ACCENT);
-    sprite.drawString(minStr, SCREEN_WIDTH / 2 + 42, panelY + 35, 7);
+    sprite.drawString(minStr, SCREEN_WIDTH / 2 + 32, panelY + 35, 7);
     
     sprite.setTextColor(COLOR_ACCENT);
     sprite.setTextDatum(MR_DATUM);
