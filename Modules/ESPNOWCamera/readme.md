@@ -105,6 +105,15 @@ START_STREAM  - Start continuous streaming at 2 FPS
 STOP_STREAM   - Stop streaming
 STATUS        - Show system status
 HELP          - Show command list
+MSG: <text>   - Send text message to slave
+M: <text>     - Send text message (short form)
+```
+
+### Slave Commands (via Serial Monitor)
+```
+MSG: <text>   - Send text message to master
+M: <text>     - Send text message (short form)
+HELP          - Show command list
 ```
 
 ### Shortcuts
@@ -116,7 +125,28 @@ X  - STOP_STREAM
 H  - HELP
 ```
 
+### Messaging Examples
+**From Master to Slave:**
+```
+MSG: Camera check please
+M: Get status
+MSG: Adjust brightness
+```
+
+**From Slave to Master:**
+```
+MSG: Camera ready!
+M: Temperature: 42C
+MSG: Low battery warning
+```
+
 ## How It Works
+
+### Text Messaging
+1. **Master to Slave**: Type `MSG: Hello Slave!` in Master's serial monitor
+2. Slave receives and displays: `📨 [Message from Master]: Hello Slave!`
+3. **Slave to Master**: Type `MSG: Camera OK` in Slave's serial monitor
+4. Master receives and displays: `📨 [Message from Slave]: Camera OK`
 
 ### Single Frame Capture
 1. Master sends `CAPTURE` command via ESP-NOW
@@ -152,6 +182,29 @@ H  - HELP
 - **Quality**: JPEG Quality 4 (high quality)
 - **Streaming Rate**: 2 FPS (configurable)
 - **Latency**: ~200-400ms per frame
+- **Timeout**: 5 seconds (increased for reliability)
+
+## Recent Improvements
+
+### v1.1 Features
+- ✅ **Increased timeout** from 3s to 5s for better reliability
+- ✅ **Old frame prevention** - Clears camera buffer before CAPTURE to ensure fresh images
+- ✅ **Send/Receive callbacks** - Both master and slave now show detailed transmission status
+- ✅ **Better debugging** - Clear [Master] and [Slave] prefixes in serial output
+- ✅ **Queue clearing** - Master clears old images before requesting new CAPTURE
+
+### Callback Features
+**Master callbacks show:**
+- Command send success/failure
+- Image reception start with details (size, packets)
+- Packet reception progress
+- Timeout warnings with packet count
+
+**Slave callbacks show:**
+- Command received confirmation
+- Frame capture and transmission details
+- Packet send failures (if any)
+- Detailed success/failure for each operation
 
 ## Troubleshooting
 
